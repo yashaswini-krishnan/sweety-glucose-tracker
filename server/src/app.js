@@ -3,6 +3,7 @@ const cors = require('cors');
 const healthRouter = require('./routes/health');
 const authRouter = require('./routes/auth');
 const readingsRouter = require('./routes/readings');
+const reportsRouter = require('./routes/reports');
 
 const app = express();
 
@@ -13,6 +14,7 @@ app.use(express.json());
 app.use('/api/health', healthRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/readings', readingsRouter);
+app.use('/api/reports', reportsRouter);
 
 // Central handler. Controllers pass errors with next(err).
 // Set err.status for 400, 401, 404, or 409. Anything else is a 500.

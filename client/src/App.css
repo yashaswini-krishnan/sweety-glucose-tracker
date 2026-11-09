@@ -272,3 +272,87 @@
   background: #f7faf8;
   color: #446054;
 }
+
+.reports-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.report-date-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 220px;
+}
+
+.report-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.report-panel {
+  background: #fff;
+  border: 1px solid #d5ddd8;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.report-panel h3 {
+  margin-top: 0;
+}
+
+.report-range {
+  margin: 0 0 16px;
+  color: #49615c;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.stat-card {
+  background: #f4f9f6;
+  border: 1px solid #d9e9df;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stat-card span {
+  font-size: 0.85rem;
+  color: #49615c;
+}
+
+.daily-readings {
+  margin-top: 18px;
+}
+
+.daily-readings h4 {
+  margin: 0 0 12px;
+}
+
+.daily-readings ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.daily-readings li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  background: #f8fbf9;
+  border: 1px solid #e3ece6;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+

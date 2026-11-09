@@ -23,8 +23,15 @@ function isKnownSlot(slot) {
   return typeof slot === 'string' && Object.hasOwn(SLOT_LABELS, slot);
 }
 
+function articleFor(label) {
+  const match = label.trim().match(/[A-Za-z]/);
+  const letter = match ? match[0].toLowerCase() : '';
+  return ['a', 'e', 'i', 'o', 'u'].includes(letter) ? 'an' : 'a';
+}
+
 function duplicateSlotMessage(slot) {
-  return `You already have an ${SLOT_LABELS[slot]} reading for this date.`;
+  const label = SLOT_LABELS[slot] || 'reading';
+  return `You already have ${articleFor(label)} ${label} reading for this date.`;
 }
 
 // Order is fixed: required, range, date, future date, slot, max 4, duplicate slot.

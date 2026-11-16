@@ -32,9 +32,24 @@ async function register() {
     email: 'test@example.com',
     password: 'password1',
   });
+  expect(response.status).toBe(201);
+  return response.body.token;
+}
+async function registerUser(name, email) {
+  const response = await request(app).post('/api/auth/register').send({
+    name,
+    email,
+    password: 'password1',
+  });
 
   expect(response.status).toBe(201);
   return response.body.token;
+}
+
+async function createReading(token, date, slot, value) {
+  const response = await postReading(token, { date, slot, value });
+  expect(response.status).toBe(201);
+  return response.body;
 }
 
 function postReading(token, body) {
@@ -132,3 +147,194 @@ test('builds date ranges, including January, and rounds the average to 1 decimal
   expect(report.body.highest).toBe(62);
   expect(report.body.average).toBe(50.7);
 });
+
+
+test('rejects unauthenticated access to reading endpoints', async () => {
+  const responses = await Promise.all([
+    request(app).get('/api/readings'),
+    request(app).post('/api/readings').send({
+      date: addDays(todayInKolkata(), -1),
+      slot: 'morning_fasting',
+      value: 120,
+    }),
+    request(app).put('/api/readings/1').send({
+      date: addDays(todayInKolkata(), -1),
+      slot: 'morning_fasting',
+      value: 130,
+    }),
+    request(app).delete('/api/readings/1'),
+  ]);
+
+  for (const response of responses) {
+    expect(response.status).toBe(401);
+  }
+});
+
+test('prevents users from viewing each other readings', async () => {
+  const tokenA = await registerUser('User A', 'usera@example.com');
+  const tokenB = await registerUser('User B', 'userb@example.com');
+
+  const date = addDays(todayInKolkata(), -1);
+
+  await createReading(tokenA, date, 'morning_fasting', 120);
+
+  const response = await request(app)
+    .get('/api/readings')
+    .set('Authorization', `Bearer ${tokenB}`);
+
+  expect(response.status).toBe(200);
+  expect(response.body).toHaveLength(0);
+});
+
+test('prevents users from updating or deleting another users reading', async () => {
+  const tokenA = await registerUser('User A', 'usera@example.com');
+  const tokenB = await registerUser('User B', 'userb@example.com');
+
+  const date = addDays(todayInKolkata(), -1);
+
+  const reading = await createReading(
+    tokenA,
+    date,
+    'morning_fasting',
+    120
+  );
+
+  const update = await request(app)
+    .put(`/api/readings/${reading.id}`)
+    .set('Authorization', `Bearer ${tokenB}`)
+    .send({
+      date,
+      slot: 'morning_fasting',
+      value: 150,
+    });
+
+  expect(update.status).toBe(404);
+  expect(update.body).toEqual({ error: 'Reading not found.' });
+
+  const remove = await request(app)
+    .delete(`/api/readings/${reading.id}`)
+    .set('Authorization', `Bearer ${tokenB}`);
+
+  expect(remove.status).toBe(404);
+  expect(remove.body).toEqual({ error: 'Reading not found.' });
+
+  const ownerCheck = await request(app)
+    .get('/api/readings')
+    .set('Authorization', `Bearer ${tokenA}`);
+
+  expect(ownerCheck.status).toBe(200);
+  expect(ownerCheck.body).toHaveLength(1);
+  expect(ownerCheck.body[0].value).toBe(120);
+});
+
+
+test('supports the complete reading CRUD lifecycle', async () => {
+  const token = await register();
+  const date = addDays(todayInKolkata(), -1);
+
+  // 1. Create
+  const created = await createReading(
+    token,
+    date,
+    'morning_fasting',
+    120
+  );
+
+  expect(created).toMatchObject({
+    date,
+    slot: 'morning_fasting',
+    value: 120,
+  });
+  expect(created.id).toBeDefined();
+
+  // 2. Retrieve
+  const listed = await request(app)
+    .get('/api/readings')
+    .set('Authorization', `Bearer ${token}`);
+
+  expect(listed.status).toBe(200);
+  expect(listed.body).toHaveLength(1);
+  expect(listed.body[0].id).toBe(created.id);
+
+  // 3. Update
+  const updated = await request(app)
+    .put(`/api/readings/${created.id}`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      date,
+      slot: 'morning_fasting',
+      value: 150,
+    });
+
+  expect(updated.status).toBe(200);
+  expect(updated.body.value).toBe(150);
+
+  // 4. Delete
+  const deleted = await request(app)
+    .delete(`/api/readings/${created.id}`)
+    .set('Authorization', `Bearer ${token}`);
+
+  expect(deleted.status).toBe(204);
+
+  // 5. Confirm deletion
+  const finalList = await request(app)
+    .get('/api/readings')
+    .set('Authorization', `Bearer ${token}`);
+
+  expect(finalList.status).toBe(200);
+  expect(finalList.body).toHaveLength(0);
+});
+
+
+test('rejects login with invalid credentials', async () => {
+  await register();
+
+  const response = await request(app)
+    .post('/api/auth/login')
+    .send({
+      email: 'test@example.com',
+      password: 'wrongpassword',
+    });
+
+  expect(response.status).toBe(401);
+  expect(response.body).toEqual({
+    error: 'Invalid email or password.',
+  });
+});
+
+test('rejects registration with an already registered email', async () => {
+  await register();
+
+  const response = await request(app)
+    .post('/api/auth/register')
+    .send({
+      name: 'Another User',
+      email: 'test@example.com',
+      password: 'password2',
+    });
+
+  expect(response.status).toBe(409);
+  expect(response.body).toEqual({
+    error: 'An account with this email already exists.',
+  });
+});
+
+test('rejects unauthenticated access to the current user endpoint', async () => {
+  const response = await request(app).get('/api/auth/me');
+
+  expect(response.status).toBe(401);
+});
+
+test('rejects unauthenticated access to all report endpoints', async () => {
+  const responses = await Promise.all([
+    request(app).get('/api/reports/daily'),
+    request(app).get('/api/reports/month-to-date'),
+    request(app).get('/api/reports/monthly'),
+  ]);
+
+  for (const response of responses) {
+    expect(response.status).toBe(401);
+  }
+});
+
+

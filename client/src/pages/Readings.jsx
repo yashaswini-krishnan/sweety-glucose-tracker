@@ -52,15 +52,41 @@ export default function Readings() {
     setEditingId(null);
   }
 
+
   async function handleSubmit(event) {
     event.preventDefault();
     setError('');
+
+    // 1. Check whether glucose value is empty
+    if (form.value.trim() === '') {
+      setError('Please enter a glucose value.');
+      return;
+    }
+
+    // 2. Check whole number and valid range
+    const numericValue = Number(form.value);
+
+    if (
+      !Number.isInteger(numericValue) ||
+      numericValue < 40 ||
+      numericValue > 600
+    ) {
+      setError('Value must be between 40 and 600 mg/dl.');
+      return;
+    }
+
+    // 3. Check date
+    if (!form.date || form.date > todayString()) {
+      setError('Date cannot be in the future.');
+      return;
+    }
+
     setSubmitting(true);
 
     const payload = {
       date: form.date,
       slot: form.slot,
-      value: Number(form.value),
+      value: numericValue,
     };
 
     try {
@@ -78,6 +104,7 @@ export default function Readings() {
       setSubmitting(false);
     }
   }
+
 
   async function handleDelete(id) {
     const confirmed = window.confirm('Delete this reading?');

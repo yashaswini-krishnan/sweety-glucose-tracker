@@ -1,3 +1,4 @@
+
 const SLOT_OPTIONS = [
   { value: 'morning_fasting', label: 'Morning (fasting)' },
   { value: 'after_breakfast', label: 'After breakfast' },
@@ -25,13 +26,14 @@ export default function ReadingForm({
   return (
     <section className="card readings-card">
       <h2>{isEditing ? 'Edit reading' : 'Add a reading'}</h2>
+
       {error && (
         <div className="error-box" role="alert">
           {error}
         </div>
       )}
 
-      <form className="reading-form" onSubmit={onSubmit}>
+      <form className="reading-form" onSubmit={onSubmit} noValidate>
         <label>
           Date
           <input
@@ -39,7 +41,6 @@ export default function ReadingForm({
             value={form.date}
             max={todayIsoLocal()}
             onChange={(event) => onChange('date', event.target.value)}
-            required
           />
         </label>
 
@@ -48,7 +49,6 @@ export default function ReadingForm({
           <select
             value={form.slot}
             onChange={(event) => onChange('slot', event.target.value)}
-            required
           >
             {SLOT_OPTIONS.map((slot) => (
               <option key={slot.value} value={slot.value}>
@@ -68,17 +68,22 @@ export default function ReadingForm({
             value={form.value}
             onChange={(event) => onChange('value', event.target.value)}
             placeholder="e.g. 120"
-            required
           />
         </label>
 
         <div className="form-actions">
           <button type="submit" disabled={submitting}>
-            {submitting ? (isEditing ? 'Saving...' : 'Adding...') : isEditing ? 'Save changes' : 'Add reading'}
+            {submitting
+              ? (isEditing ? 'Saving...' : 'Adding...')
+              : isEditing ? 'Save changes' : 'Add reading'}
           </button>
 
           {isEditing && (
-            <button type="button" className="secondary-button" onClick={onCancelEdit}>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={onCancelEdit}
+            >
               Cancel
             </button>
           )}
